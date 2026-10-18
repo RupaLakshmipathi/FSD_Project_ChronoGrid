@@ -1,4 +1,4 @@
-# ChronoGrid · VIT Bhimavaram
+﻿# ChronoGrid | FSD_Project_ChronoGrid
 
 ChronoGrid is an academic scheduling application for Vishnu Institute of Technology, Bhimavaram. It provides separate Student and Faculty login roles, a month/week/day timetable calendar, academic resource management, and constraint-based timetable generation.
 
@@ -66,6 +66,6 @@ Sign in through **Faculty Login**, then create faculty profiles, subjects, class
 - No official VIT logo asset was supplied; branding uses a text-based VIT monogram and does not claim an official logo.
 - Account recovery/email delivery is not configured. Provision accounts through the private registration key.
 - Timetable schedules repeat by configured weekdays inside their effective date ranges. One-off holidays and calendar exceptions are not modeled.
-- The generator's standard day offers a configurable start time, 4–8 periods, period duration, and lunch break boundary. A short break is inserted after period 2.
+- The generator's standard day offers a configurable start time, 4â€“8 periods, period duration, and lunch break boundary. A short break is inserted after period 2.
 - PDF is provided through the browser print dialog. CSV export contains the selected day's timetable.
 - A faculty-authenticated service account can manage all academic resources; per-department faculty scopes are not implemented.
