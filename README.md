@@ -2,6 +2,15 @@
 
 ChronoGrid is an academic scheduling application for Vishnu Institute of Technology, Bhimavaram. It provides separate Student and Faculty login roles, a month/week/day timetable calendar, academic resource management, and constraint-based timetable generation.
 
+
+# AFTER OPENING THE LIVE LINK - https://fsd-project-chrono-grid.vercel.app/
+ - For Student Login(only read mode) : use these credentials
+   mail: 24pa1a05d51@vishnu.edu.in
+   password: Rupa#2006
+ - For Faculty login(read and write mode) : use these credentials
+   mail : 24pa1a05d5@vishnu.edu.in
+   password: Lakshmipathi@123  
+
 ## Run locally
 
 Requirements: Node.js 20+, npm, and a MongoDB database.
@@ -18,39 +27,6 @@ npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The Vite frontend proxies `/api` to the Express server on port 5000. To run separately, use `npm run dev:client` and `npm run dev:server`. Check MongoDB status at <http://127.0.0.1:5000/api/health>. Create a production frontend build with `npm run build`; run the API in production with `npm start`.
-
-## Deploy to Vercel
-
-Import this GitHub repository into Vercel. Vercel builds the Vite frontend and routes `/api/*` through the Express function in `api/index.js`. Add these environment variables in the Vercel project settings for Production (and Preview if needed):
-
-- `MONGODB_URI`: the MongoDB Atlas connection string.
-- `JWT_SECRET`: a long, random private string.
-- `REGISTRATION_KEY`: a separate private key used to provision accounts.
-
-Keep these values in Vercel's Environment Variables settings; do not commit them. Add the Vercel deployment's outbound IP access in MongoDB Atlas Network Access if the database uses IP restrictions. After deployment, check `/api/health` and confirm it reports `"database":"connected"`.
-
-## Provision the first Faculty account
-
-For security, account creation is not open in the login screen. A trusted workspace owner provisions accounts through the registration API using the private `REGISTRATION_KEY` from `.env`. The key is sent in the `x-registration-key` header. The API only accepts `faculty` and `student` roles; it cannot create an administrator account.
-
-PowerShell example (replace values locally; do not paste secrets into source files):
-
-```powershell
-$registrationKey = 'copy REGISTRATION_KEY from your local .env'
-$body = @{
-  name = 'Faculty Name'
-  email = 'faculty@vishnu.edu.in'
-  password = 'use-a-unique-password-at-least-10-characters'
-  role = 'faculty'
-} | ConvertTo-Json
-
-Invoke-RestMethod -Method Post `
-  -Uri 'http://127.0.0.1:5000/api/auth/register' `
-  -Headers @{ 'x-registration-key' = $registrationKey } `
-  -ContentType 'application/json' -Body $body
-```
-
-Sign in through **Faculty Login**, then create faculty profiles, subjects, classrooms, and classes. To provision a student, obtain the class record's MongoDB `_id`, include it as `classId` in the registration request, and set `role = 'student'`. Students only receive schedules whose `classId` matches their account.
 
 ## Features
 
@@ -71,11 +47,4 @@ Sign in through **Faculty Login**, then create faculty profiles, subjects, class
 - Student APIs cannot read faculty/resource management endpoints or write timetables. Published timetables are read by the student's assigned class/section.
 - The server binds to `127.0.0.1` by default. Configure an intentional deployment host and CORS origin before production deployment.
 
-## Limitations
 
-- No official VIT logo asset was supplied; branding uses a text-based VIT monogram and does not claim an official logo.
-- Account recovery/email delivery is not configured. Provision accounts through the private registration key.
-- Timetable schedules repeat by configured weekdays inside their effective date ranges. One-off holidays and calendar exceptions are not modeled.
-- The generator's standard day offers a configurable start time, 4â€“8 periods, period duration, and lunch break boundary. A short break is inserted after period 2.
-- PDF is provided through the browser print dialog. CSV export contains the selected day's timetable.
-- A faculty-authenticated service account can manage all academic resources; per-department faculty scopes are not implemented.
