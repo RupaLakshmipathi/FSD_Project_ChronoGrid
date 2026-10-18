@@ -4,12 +4,16 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { User,Faculty,Subject,Classroom,AcademicClass,Availability,Timetable,TimetableVersion,Notification,Scenario } from './models/index.js';
 import { requireAuth,requireRole } from './middleware/auth.js';
 import { generateAlternatives,validateSchedule } from '../src/utils/scheduler.js';
 
-const app=express(),port=process.env.PORT||5000,host=process.env.HOST||'127.0.0.1';
-app.use(cors({origin:(process.env.CLIENT_ORIGIN||'http://localhost:5173').split(',')}));
+const app=express(),port=process.env.PORT||5000,host=process.env.HOST||'0.0.0.0';
+const allowedOrigins=(process.env.CLIENT_ORIGIN||'http://localhost:5173,http://127.0.0.1:5173').split(',').map(value=>value.trim()).filter(Boolean);
+if(process.env.RENDER_EXTERNAL_URL)allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
+app.use(cors({origin:(origin,callback)=>callback(null,!origin||allowedOrigins.includes(origin))}));
 app.use(express.json({limit:'1mb'}));
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const facultyOnly=requireRole('faculty');
@@ -119,6 +123,10 @@ app.get('/api/analytics',requireAuth,asyncRoute(async(req,res)=>{
  const today=new Date(),filter=req.user.role==='student'?{status:'published',classId:req.user.classId,effectiveFrom:{$lte:today},effectiveTo:{$gte:today}}:{status:'published',effectiveFrom:{$lte:today},effectiveTo:{$gte:today}},[faculty,rooms,subjects,classes,timetables]=await Promise.all([req.user.role==='faculty'?Faculty.countDocuments({active:{$ne:false}}):0,req.user.role==='faculty'?Classroom.countDocuments():0,req.user.role==='faculty'?Subject.countDocuments():0,req.user.role==='faculty'?AcademicClass.countDocuments():0,Timetable.find(filter).lean()]);const sessions=timetables.flatMap(t=>t.sessions||[]);res.json({faculty,rooms,subjects,classes,timetables:timetables.length,sessions:sessions.length,byDay:sessions.reduce((o,s)=>(o[s.day]=(o[s.day]||0)+1,o),{})});
 }));
 app.post('/api/simulations',requireAuth,facultyOnly,asyncRoute(async(req,res)=>{const item=await Scenario.create({...req.body,createdBy:req.user.sub});res.status(201).json(item)}));
+
+const clientDist=resolve(dirname(fileURLToPath(import.meta.url)),'../dist');
+app.use(express.static(clientDist));
+app.get('*',(req,res,next)=>{if(req.path.startsWith('/api/'))return next();res.sendFile(resolve(clientDist,'index.html'),error=>error&&next(error));});
 
 async function checkSessions(sessions,timetable={}){
  const ids={faculty:[...new Set(sessions.map(s=>s.facultyId).filter(Boolean))],rooms:[...new Set(sessions.map(s=>s.roomId).filter(Boolean))],classes:[...new Set(sessions.map(s=>s.classId).filter(Boolean))],subjects:[...new Set(sessions.map(s=>s.subjectId).filter(Boolean))]};
