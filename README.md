@@ -19,9 +19,15 @@ npm run dev
 
 Open <http://127.0.0.1:5173>. The Vite frontend proxies `/api` to the Express server on port 5000. To run separately, use `npm run dev:client` and `npm run dev:server`. Check MongoDB status at <http://127.0.0.1:5000/api/health>. Create a production frontend build with `npm run build`; run the API in production with `npm start`.
 
-## Deploy to Render
+## Deploy to Vercel
 
-The included `render.yaml` creates a single Render web service. In Render, create a Blueprint from this GitHub repository. Before the first deployment, enter the private `MONGODB_URI` value when prompted; Render generates `JWT_SECRET` and `REGISTRATION_KEY`. The service builds the React app and serves it from Express. Once deployed, open `/api/health` on the Render URL and confirm it reports `"database":"connected"`.
+Import this GitHub repository into Vercel. The root Express app is deployed as a Vercel Function, and the build copies the Vite frontend into `public` for static serving. Add these environment variables in the Vercel project settings for Production (and Preview if needed):
+
+- `MONGODB_URI`: the MongoDB Atlas connection string.
+- `JWT_SECRET`: a long, random private string.
+- `REGISTRATION_KEY`: a separate private key used to provision accounts.
+
+Keep these values in Vercel's Environment Variables settings; do not commit them. Add the Vercel deployment's outbound IP access in MongoDB Atlas Network Access if the database uses IP restrictions. After deployment, check `/api/health` and confirm it reports `"database":"connected"`.
 
 ## Provision the first Faculty account
 

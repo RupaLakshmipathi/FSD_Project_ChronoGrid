@@ -4,22 +4,27 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { User,Faculty,Subject,Classroom,AcademicClass,Availability,Timetable,TimetableVersion,Notification,Scenario } from './models/index.js';
 import { requireAuth,requireRole } from './middleware/auth.js';
 import { generateAlternatives,validateSchedule } from '../src/utils/scheduler.js';
 
 const app=express(),port=process.env.PORT||5000,host=process.env.HOST||'0.0.0.0';
 const allowedOrigins=(process.env.CLIENT_ORIGIN||'http://localhost:5173,http://127.0.0.1:5173').split(',').map(value=>value.trim()).filter(Boolean);
-if(process.env.RENDER_EXTERNAL_URL)allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
+if(process.env.VERCEL_URL)allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
 app.use(cors({origin:(origin,callback)=>callback(null,!origin||allowedOrigins.includes(origin))}));
 app.use(express.json({limit:'1mb'}));
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const facultyOnly=requireRole('faculty');
 const noStudent=requireRole('faculty');
-const available=()=>mongoose.connection.readyState===1;
-const ensureDb=(req,res,next)=>available()?next():res.status(503).json({error:'Database is unavailable. Check the MongoDB connection and try again.'});
+let mongoConnection;
+function connectToDatabase(){
+ if(mongoose.connection.readyState===1)return Promise.resolve();
+ if(!process.env.MONGODB_URI)return Promise.reject(new Error('MONGODB_URI is not configured'));
+ if(!mongoConnection)mongoConnection=mongoose.connect(process.env.MONGODB_URI).catch(error=>{mongoConnection=undefined;throw error});
+ return mongoConnection;
+}
+const ensureDb=async(req,res,next)=>{try{await connectToDatabase();next()}catch(error){console.error('MongoDB connection failed:',error.message);res.status(503).json({error:'Database is unavailable. Check the MongoDB connection and try again.'})}};
 app.use('/api',ensureDb);
 app.get('/api/health',(req,res)=>res.json({status:'ok',database:'connected'}));
 
@@ -124,10 +129,6 @@ app.get('/api/analytics',requireAuth,asyncRoute(async(req,res)=>{
 }));
 app.post('/api/simulations',requireAuth,facultyOnly,asyncRoute(async(req,res)=>{const item=await Scenario.create({...req.body,createdBy:req.user.sub});res.status(201).json(item)}));
 
-const clientDist=resolve(dirname(fileURLToPath(import.meta.url)),'../dist');
-app.use(express.static(clientDist));
-app.get('*',(req,res,next)=>{if(req.path.startsWith('/api/'))return next();res.sendFile(resolve(clientDist,'index.html'),error=>error&&next(error));});
-
 async function checkSessions(sessions,timetable={}){
  const ids={faculty:[...new Set(sessions.map(s=>s.facultyId).filter(Boolean))],rooms:[...new Set(sessions.map(s=>s.roomId).filter(Boolean))],classes:[...new Set(sessions.map(s=>s.classId).filter(Boolean))],subjects:[...new Set(sessions.map(s=>s.subjectId).filter(Boolean))]};
  const[faculty,rooms,classes,subjects]=await Promise.all([Faculty.find({_id:{$in:ids.faculty}}).lean(),Classroom.find({_id:{$in:ids.rooms}}).lean(),AcademicClass.find({_id:{$in:ids.classes}}).lean(),Subject.find({_id:{$in:ids.subjects}}).lean()]);
@@ -149,7 +150,10 @@ async function hydrateSessions(items){
 }
 
 app.use((err,req,res,next)=>{if(err.name==='ValidationError')return res.status(400).json({error:err.message});if(err.code===11000)return res.status(409).json({error:'A record with that value already exists'});if(err.name==='CastError')return res.status(400).json({error:'Invalid record id'});console.error(err);res.status(500).json({error:'Something went wrong'});});
+const clientDist=resolve(process.cwd(),'public');
+app.use(express.static(clientDist));
+app.get('*',(req,res,next)=>{if(req.path.startsWith('/api/'))return next();res.sendFile(resolve(clientDist,'index.html'),error=>error&&next(error));});
 if(!process.env.JWT_SECRET)console.warn('JWT_SECRET is missing. Authentication routes will fail until configured.');
 if(!process.env.MONGODB_URI)console.warn('MONGODB_URI is not set.');
-mongoose.connect(process.env.MONGODB_URI||'').then(()=>console.log('MongoDB connected')).catch(err=>console.error('MongoDB connection failed:',err.message));
-app.listen(port,host,()=>console.log(`ChronoGrid API listening on http://${host}:${port}`));
+if(!process.env.VERCEL)app.listen(port,host,()=>console.log(`ChronoGrid API listening on http://${host}:${port}`));
+export default app;

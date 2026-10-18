@@ -7,7 +7,7 @@
     "dev": "concurrently -k \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite --host 127.0.0.1",
     "dev:server": "node --watch server/index.js",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-dist-to-public.js",
     "start": "node server/index.js"
   },
   "dependencies": {
