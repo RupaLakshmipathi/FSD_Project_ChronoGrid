@@ -20,12 +20,15 @@ let mongoConnection;
 function connectToDatabase(){
  if(mongoose.connection.readyState===1)return Promise.resolve();
  if(!process.env.MONGODB_URI)return Promise.reject(new Error('MONGODB_URI is not configured'));
- if(!mongoConnection)mongoConnection=mongoose.connect(process.env.MONGODB_URI).catch(error=>{mongoConnection=undefined;throw error});
+ if(!mongoConnection)mongoConnection=mongoose.connect(process.env.MONGODB_URI,{serverSelectionTimeoutMS:8000,connectTimeoutMS:8000}).catch(error=>{mongoConnection=undefined;throw error});
  return mongoConnection;
 }
-const ensureDb=async(req,res,next)=>{try{await connectToDatabase();next()}catch(error){console.error('MongoDB connection failed:',error.message);res.status(503).json({error:'Database is unavailable. Check the MongoDB connection and try again.'})}};
+const ensureDb=async(req,res,next)=>{try{await connectToDatabase();next()}catch(error){console.error('MongoDB connection failed:',error.message);res.status(503).json({error:process.env.MONGODB_URI?'MongoDB is unreachable. Check Atlas Network Access and the Vercel MONGODB_URI value.':'MONGODB_URI is missing from the Vercel environment.'})}};
+app.get('/api/health',asyncRoute(async(req,res)=>{
+ try{await connectToDatabase();res.json({status:'ok',database:'connected'})}
+ catch(error){console.error('MongoDB health check failed:',error.message);res.status(503).json({status:'degraded',database:'disconnected',mongoUriConfigured:Boolean(process.env.MONGODB_URI),reason:process.env.MONGODB_URI?'MongoDB could not be reached; check Atlas Network Access and the Vercel MONGODB_URI value.':'MONGODB_URI is missing from the Vercel environment.'})}
+}));
 app.use('/api',ensureDb);
-app.get('/api/health',(req,res)=>res.json({status:'ok',database:'connected'}));
 
 app.post('/api/auth/register',asyncRoute(async(req,res)=>{
  const{name,email,password,role,classId,facultyId,department}=req.body;
