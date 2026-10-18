@@ -21,7 +21,7 @@ Open <http://127.0.0.1:5173>. The Vite frontend proxies `/api` to the Express se
 
 ## Deploy to Vercel
 
-Import this GitHub repository into Vercel. The root Express app is deployed as a Vercel Function, and the build copies the Vite frontend into `public` for static serving. Add these environment variables in the Vercel project settings for Production (and Preview if needed):
+Import this GitHub repository into Vercel. Vercel builds the Vite frontend and routes `/api/*` through the Express function in `api/index.js`. Add these environment variables in the Vercel project settings for Production (and Preview if needed):
 
 - `MONGODB_URI`: the MongoDB Atlas connection string.
 - `JWT_SECRET`: a long, random private string.

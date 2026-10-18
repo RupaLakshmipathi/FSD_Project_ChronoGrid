@@ -3,7 +3,5 @@ dist/
 .env
 .env.local
 .vercel/
-public/assets/
-public/index.html
 .DS_Store
 coverage/
