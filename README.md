@@ -3,13 +3,10 @@
 ChronoGrid is an academic scheduling application for Vishnu Institute of Technology, Bhimavaram. It provides separate Student and Faculty login roles, a month/week/day timetable calendar, academic resource management, and constraint-based timetable generation.
 
 
-# AFTER OPENING THE LIVE LINK - https://fsd-project-chrono-grid.vercel.app/
- - For Student Login(only read mode) : use these credentials
-   mail: 24pa1a05d51@vishnu.edu.in
-   password: Rupa#2006
- - For Faculty login(read and write mode) : use these credentials
-   mail : 24pa1a05d5@vishnu.edu.in
-   password: Lakshmipathi@123  
+## Sign in
+
+Student and faculty accounts are provisioned privately by the workspace owner. Do not publish account emails or passwords here. Contact the owner to receive or reset your login details.
+
 
 ## Run locally
 
